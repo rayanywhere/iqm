@@ -1,0 +1,57 @@
+#!/usr/bin/env node
+const mysql = require('mysql');
+const walk = require('klaw-sync');
+const path = require('path');
+const IndexRouter = require('../src/index/router');
+
+if (process.argv.length != 3) {
+	console.error('usage: destroy_mysql_schema <source_path>');
+	process.exit(-1);
+}
+
+const SOURCE_PATH = path.resolve(process.argv[2]);
+
+const modules = walk(SOURCE_PATH, {
+	nodir: true,
+	filter: item => item.path.endsWith('router.js')
+});
+
+for (let item of modules) {
+	const module = path.dirname(item.path).replace(SOURCE_PATH + '/', '').replace(/\//g, '.');
+	destroy_mysql_schema(module, path.dirname(item.path)).catch(err => {
+		console.error(err);
+		process.exit(-1);
+	});
+}
+
+async function destroy_mysql_schema(module, path) {
+	const router = new IndexRouter(module, `${path}/router`);
+	let sql = generate_sql(module, router.connParam);
+	await execute_sql(sql, router.connParam);
+}
+
+function generate_sql(module, connParam) {
+	const table = `${connParam.database}.i_${module.replace(/\./g, '_')}`;
+	return `DROP TABLE IF EXISTS ${table}`;
+}
+
+async function execute_sql(sql, connParam) {
+	let connection = mysql.createConnection({
+		host : connParam.host,
+		port : connParam.port,
+		user : connParam.user,
+		password : connParam.password
+	});
+
+	return await new Promise((resolve, reject) => {
+		connection.connect();
+		connection.query(sql, (err) => {
+			connection.end();
+			if (err) {
+				reject(err);
+				return;
+			}
+			resolve();
+		});
+	});
+}

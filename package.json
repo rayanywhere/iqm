@@ -1,0 +1,30 @@
+{
+  "name": "iqm",
+  "version": "1.0.1",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha"
+  },
+  "bin": {
+    "iqm_build_mysql_schema": "./bin/build_mysql_schema",
+    "iqm_destroy_mysql_schema": "./bin/destroy_mysql_schema"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rayanywhere/iqm.git"
+  },
+  "author": "rayanywhere",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/rayanywhere/iqm/issues"
+  },
+  "homepage": "https://github.com/rayanywhere/iqm#readme",
+  "dependencies": {
+    "ajv": "^5.2.2",
+    "ajv-keywords": "^2.1.0",
+    "klaw-sync": "^2.1.0",
+    "mysql": "^2.13.0",
+    "uuid": "^3.1.0"
+  }
+}

@@ -1,0 +1,79 @@
+#!/usr/bin/env node
+const mysql = require('mysql');
+const walk = require('klaw-sync');
+const path = require('path');
+const IndexSchema = require('../src/index/schema');
+const IndexRouter = require('../src/index/router');
+
+if (process.argv.length != 3) {
+	console.error('usage: build_mysql_schema <source_path>');
+	process.exit(-1);
+}
+
+const SOURCE_PATH = path.resolve(process.argv[2]);
+
+const modules = walk(SOURCE_PATH, {
+	nodir: true,
+	filter: item => item.path.endsWith('router.js')
+});
+for (let item of modules) {
+	const module = path.dirname(item.path).replace(SOURCE_PATH + '/', '').replace(/\//g, '.');
+	build_mysql_schema(module, path.dirname(item.path)).catch(err => {
+		console.error(err);
+		process.exit(-1);
+	});
+};
+
+async function build_mysql_schema(module, path) {
+	const schema = new IndexSchema(module, `${path}/schema`);
+	const router = new IndexRouter(module, `${path}/router`);
+	let {dbSql, tableSql} = generate_sqls(module, schema, router.connParam);
+	await execute_sql(dbSql, router.connParam);
+	await execute_sql(tableSql, router.connParam);
+}
+
+function generate_sqls(module, schema, router) {
+	let dbSql = `CREATE DATABASE IF NOT EXISTS ${router.database}`;
+	const table = `${router.database}.i_${module.replace(/\./g, '_')}`;
+
+	let tableSql = `CREATE TABLE IF NOT EXISTS ${table}(id CHAR(32) PRIMARY KEY`;
+	for (let [fieldName, fieldValue] of Object.entries(schema.properties)) {
+		switch(fieldValue.type) {
+			case "integer":
+				tableSql += `,${fieldName} INTEGER NOT NULL`;
+				break;
+			case "string":
+				tableSql += `,${fieldName} VARCHAR(255)`;
+				break;
+			default:
+				throw new Error(`unknown type ${fieldValue.type}`);
+				break;
+		}
+	}
+	for (let fieldName in schema.properties) {
+		tableSql += `,INDEX(${fieldName})`;
+	}
+	tableSql += ")";
+	return {dbSql, tableSql};
+}
+
+async function execute_sql(sql, connParam) {
+	let connection = mysql.createConnection({
+		host : connParam.host,
+		port : connParam.port,
+		user : connParam.user,
+		password : connParam.password
+	});
+
+	return await new Promise((resolve, reject) => {
+		connection.connect();
+		connection.query(sql, (err) => {
+			connection.end();
+			if (err) {
+				reject(err);
+				return;
+			}
+			resolve();
+		});
+	});
+}
