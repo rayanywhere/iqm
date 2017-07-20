@@ -9,7 +9,7 @@ module.exports = class Sort {
 	}
 
 	get valid() {
-		return (Number.isInteger(offset) && Number.isInteger(number));
+		return (Number.isInteger(this._offset) && Number.isInteger(this._number));
 	}
 
 	toSQL() {
