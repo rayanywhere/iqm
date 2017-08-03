@@ -22,7 +22,7 @@ module.exports = class {
 
 	validate(document) {
 		if (!this._validate(document)) {
-			throw new Error(`failed to validate document(${JSON.stringify(document)}) against schema(${JSON.stringify(this._schema.document)})\n${ajv.errorsText(this._validate.errors)}`);
+			throw new Error(`failed to validate document(${JSON.stringify(document)}) against schema(${JSON.stringify(this._schema)})\n${ajv.errorsText(this._validate.errors)}`);
 		}
 	}
 
