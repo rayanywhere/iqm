@@ -1,7 +1,7 @@
 const mysql = require('mysql');
 const assert = require('assert');
 
-module.exports = class Sort {
+module.exports = class {
 	static get Order() {
 		return {
 			ASC: 'asc',
